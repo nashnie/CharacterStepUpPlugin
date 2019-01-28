@@ -36,10 +36,9 @@ public class CharacterStepUpComponent : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
     }
 
-    bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, StepDownResult outStepDownResult)
+    bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, StepDownResult stepDownResult)
     {
         if (CanStepUp(inHitResult) == false)
         {
@@ -140,7 +139,7 @@ public class CharacterStepUpComponent : MonoBehaviour
             return false;
         }
 
-        StepDownResult stepDownResult = new StepDownResult();
+        stepDownResult = new StepDownResult();
         if (hit.bBlockingHit && hit.bStartPenetrating == false)
         {
             float deltaY = hit.ImpactPoint.y - pawnFloorPointY;
@@ -168,7 +167,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                 return false;
             }
 
-            //todo can stepup check
+            //todo can step up check
             if (deltaY > 0f)
             {
                 return false;
@@ -409,7 +408,7 @@ public class CharacterStepUpComponent : MonoBehaviour
 
     bool CanStepUp(HitResult inHitResult)
     {
-        return false;
+        return true;
     }
 
     bool IsWalkableFloor(FindFloorResult findFloorResult)
@@ -424,7 +423,7 @@ public class CharacterStepUpComponent : MonoBehaviour
 
     bool IsWithinEdgeTolerance(Vector3 capsuleLocation, Vector3 testImpactPoint, float capsuleRaius)
     {
-        float distFromCenterSq = testImpactPoint.x * capsuleLocation.x + testImpactPoint.z * capsuleLocation.z;
+        float distFromCenterSq = Square(Mathf.Abs(testImpactPoint.x - capsuleLocation.x)) + Square(Mathf.Abs(testImpactPoint.z - capsuleLocation.z));
         float reduceRadius = Mathf.Max(SWEEP_EDGE_REJECT_DIST + KINDA_SMALL_NUMBER, capsuleRaius - SWEEP_EDGE_REJECT_DIST);
         float reduceRadiusSq = reduceRadius * reduceRadius;
         return distFromCenterSq < reduceRadiusSq;
@@ -452,6 +451,7 @@ public class CharacterStepUpComponent : MonoBehaviour
 
         Vector3 traceStart = transform.position;
         Vector3 traceEnd = traceStart + delta;
+
         float deltaSizeSq = (traceEnd - traceStart).sqrMagnitude;
         Quaternion initalRotationQuat = transform.rotation;
         float minMovementDisSq = bSweep ? Square(4.0f * KINDA_SMALL_NUMBER) : 0f;
@@ -482,17 +482,24 @@ public class CharacterStepUpComponent : MonoBehaviour
         Vector3 newLocation = traceStart;
         if (deltaSizeSq > 0f)
         {
-            RaycastHit[] raycastHits = Physics.CapsuleCastAll(traceStart, traceEnd, pawnRadius, delta.normalized);
+            float delataSize = Mathf.Sqrt(deltaSizeSq);
+            Vector3 point1 = transform.position - Vector3.up * pawnHalfHeight;
+            Vector3 point2 = transform.position + Vector3.up * pawnHalfHeight;
+            RaycastHit[] raycastHits = Physics.CapsuleCastAll(point1, point2, pawnRadius, delta.normalized, delataSize);
             foreach (RaycastHit raycastHit in raycastHits)
             {
                 HitResult hitResult = new HitResult();
                 hitResult.raycastHit = raycastHit;
+                hitResult.time = raycastHit.distance / delataSize;
+                hitResult.distance = raycastHit.distance;
+                hitResult.ImpactPoint = raycastHit.point;
+                hitResult.ImpactNormal = raycastHit.normal;
+                hitResult.bStartPenetrating = false;
                 hits.Add(hitResult);
             }
             bool bHadBlockingHit = hits.Count > 0;
             if (bHadBlockingHit)
-            {
-                float delataSize = Mathf.Sqrt(deltaSizeSq);
+            {    
                 for (int i = 0; i < hits.Count; i++)
                 {
                     HitResult hit = hits[i];
@@ -821,7 +828,6 @@ public struct HitResult
 
     public RaycastHit raycastHit;
 }
-
 
 struct StepDownResult
 {
