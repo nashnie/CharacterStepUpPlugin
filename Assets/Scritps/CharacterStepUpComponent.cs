@@ -9,6 +9,9 @@ public class CharacterStepUpComponent : MonoBehaviour
     public float maxStepHeight;
     public float perchRadiusThreshold;
 
+    public Transform target;
+    public float velocity;
+
     private CapsuleCollider capsuleCollider;
     private FindFloorResult currentFloor;
     private bool bConstrainToPlane;
@@ -30,7 +33,17 @@ public class CharacterStepUpComponent : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        HitResult hit = new HitResult();
+        hit.time = 1f;
+        Quaternion pawnRotation = transform.rotation;
+        Vector3 moveForward = (target.position - transform.position).normalized;
+        MoveUpdateImpl(moveForward * velocity, pawnRotation, true, hit);
+        if (hit.bBlockingHit)
+        {
+            Vector3 gravDir = Vector3.down;
+            StepDownResult stepDownResult;
+            StepUp(gravDir, moveForward * velocity, hit, out stepDownResult);
+        }
     }
 
     // Update is called once per frame
@@ -38,7 +51,7 @@ public class CharacterStepUpComponent : MonoBehaviour
     {
     }
 
-    bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, StepDownResult stepDownResult)
+    bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, out StepDownResult stepDownResult)
     {
         if (CanStepUp(inHitResult) == false)
         {
