@@ -678,7 +678,7 @@ public class CharacterStepUpComponent : MonoBehaviour
     {
         Vector3 delta = outDelta;
         Vector3 hitNormal = hit.Normal;
-        if (Vector3.Dot(oldHitNormal, hitNormal) <= 0.f)
+        if (Vector3.Dot(oldHitNormal, hitNormal) <= 0.0f)
         {
             Vector3 desiredDir = delta;
             Vector3 newDir = Vector3.Cross(hitNormal, oldHitNormal);
