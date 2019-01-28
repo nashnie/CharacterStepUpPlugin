@@ -33,11 +33,14 @@ public class CharacterStepUpComponent : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        capsuleCollider = gameObject.GetComponent<CapsuleCollider>();
+        pawnRadius = capsuleCollider.radius;
+        pawnHalfHeight = capsuleCollider.height / 2;
         HitResult hit = new HitResult();
         hit.time = 1f;
         Quaternion pawnRotation = transform.rotation;
         Vector3 moveForward = (target.position - transform.position).normalized;
-        MoveUpdateImpl(moveForward * velocity, pawnRotation, true, hit);
+        MoveUpdateImpl(moveForward * velocity, pawnRotation, true, out hit);
         if (hit.bBlockingHit)
         {
             Vector3 gravDir = Vector3.down;
@@ -112,7 +115,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         HitResult sweepUpHit = new HitResult();
         sweepUpHit.time = 1f;
         Quaternion pawnRotation = transform.rotation;
-        MoveUpdateImpl(-gravDir * stepTravelUpHeight, pawnRotation, true, sweepUpHit);
+        MoveUpdateImpl(-gravDir * stepTravelUpHeight, pawnRotation, true, out sweepUpHit);
         if (sweepUpHit.bStartPenetrating)
         {
             return false;
@@ -121,7 +124,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         //step fwd
         HitResult hit = new HitResult();
         hit.time = 1f;
-        MoveUpdateImpl(delta, pawnRotation, true, sweepUpHit);
+        MoveUpdateImpl(delta, pawnRotation, true, out sweepUpHit);
 
         if (hit.bBlockingHit)
         {
@@ -148,7 +151,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         }
 
         //step down
-        MoveUpdate(gravDir * stepTraveDownHeight, transform.rotation, true, hit);
+        MoveUpdate(gravDir * stepTraveDownHeight, transform.rotation, true, out hit);
         if (hit.bStartPenetrating)
         {
             return false;
@@ -452,13 +455,13 @@ public class CharacterStepUpComponent : MonoBehaviour
         return direction;
     }
 
-    bool MoveUpdateImpl(Vector3 delta, Quaternion newRotation, bool bSweep, HitResult outHit)
+    bool MoveUpdateImpl(Vector3 delta, Quaternion newRotation, bool bSweep, out HitResult outHit)
     {
         Vector3 NewDelta = ConstrainDirectionToPlane(delta);
-        return MoveUpdate(NewDelta, newRotation, bSweep, outHit);
+        return MoveUpdate(NewDelta, newRotation, bSweep, out outHit);
     }
 
-    bool MoveUpdate(Vector3 delta, Quaternion newRotation, bool bSweep, HitResult outHit)
+    bool MoveUpdate(Vector3 delta, Quaternion newRotation, bool bSweep, out HitResult outHit)
     {
         outHit = new HitResult();
         outHit.time = 1.0f;
@@ -509,6 +512,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                 hitResult.ImpactPoint = raycastHit.point;
                 hitResult.ImpactNormal = raycastHit.normal;
                 hitResult.bStartPenetrating = false;
+                hitResult.bBlockingHit = true;
                 hits.Add(hitResult);
             }
             bool bHadBlockingHit = hits.Count > 0;
@@ -710,13 +714,13 @@ public class CharacterStepUpComponent : MonoBehaviour
     {
         bool bMoveResult = false;
 
-        bMoveResult = MoveUpdate(delta, newRotation, bSweep, outHit);
+        bMoveResult = MoveUpdate(delta, newRotation, bSweep, out outHit);
         if (outHit.bStartPenetrating)
         {
             Vector3 requestAdjustment = GetPenetrationAdjustment(outHit);
             if (ResolvePenetration(requestAdjustment, outHit, newRotation))
             {
-                bMoveResult = MoveUpdate(delta, newRotation, bSweep, outHit);
+                bMoveResult = MoveUpdate(delta, newRotation, bSweep, out outHit);
             }
         }
         return bMoveResult;
@@ -730,14 +734,15 @@ public class CharacterStepUpComponent : MonoBehaviour
             HitResult sweepOutHit = new HitResult();
             sweepOutHit.time = 1.0f;
             float overlapInflation = PenetrationOverlapInflation;
-            bool bMoved = MoveUpdate(adjustment, newRotation, true, sweepOutHit);
+            bool bMoved = MoveUpdate(adjustment, newRotation, true, out sweepOutHit);
             if (bMoved == false && sweepOutHit.bStartPenetrating)
             {
                 Vector3 secondMTD = GetPenetrationAdjustment(sweepOutHit);
                 Vector3 combinedMTD = adjustment + secondMTD;
                 if (secondMTD != adjustment && combinedMTD.Equals(Vector3.zero) == false)
                 {
-                    bMoved = MoveUpdate(combinedMTD, newRotation, true, new HitResult());
+                    HitResult hitResult = new HitResult();
+                    bMoved = MoveUpdate(combinedMTD, newRotation, true, out hitResult);
                 }
             }
             if (bMoved == false)
@@ -745,7 +750,8 @@ public class CharacterStepUpComponent : MonoBehaviour
                 Vector3 moveDelta = ConstrainDirectionToPlane(hit.TraceEnd - hit.TraceStart);
                 if (moveDelta.Equals(Vector3.zero) == false)
                 {
-                    bMoved = MoveUpdate(adjustment + moveDelta, newRotation, true, new HitResult());
+                    HitResult hitResult = new HitResult();
+                    bMoved = MoveUpdate(adjustment + moveDelta, newRotation, true, out hitResult);
                 }
             }
 
