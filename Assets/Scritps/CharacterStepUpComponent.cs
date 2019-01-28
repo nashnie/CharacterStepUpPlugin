@@ -53,6 +53,8 @@ public class CharacterStepUpComponent : MonoBehaviour
 
     bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, out StepDownResult stepDownResult)
     {
+        stepDownResult = new StepDownResult();
+
         if (CanStepUp(inHitResult) == false)
         {
             return false;
@@ -152,7 +154,6 @@ public class CharacterStepUpComponent : MonoBehaviour
             return false;
         }
 
-        stepDownResult = new StepDownResult();
         if (hit.bBlockingHit && hit.bStartPenetrating == false)
         {
             float deltaY = hit.ImpactPoint.y - pawnFloorPointY;
