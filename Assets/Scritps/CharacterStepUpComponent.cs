@@ -17,6 +17,8 @@ public class CharacterStepUpComponent : MonoBehaviour
     private bool bConstrainToPlane;
     private Vector3 planeConstraintNormal;
 
+    private List<Vector3> debugMovePaths = new List<Vector3>();
+
     float pawnRadius, pawnHalfHeight;
 
     private const float SWEEP_EDGE_REJECT_DIST = 0.15f;
@@ -36,22 +38,26 @@ public class CharacterStepUpComponent : MonoBehaviour
         capsuleCollider = gameObject.GetComponent<CapsuleCollider>();
         pawnRadius = capsuleCollider.radius;
         pawnHalfHeight = capsuleCollider.height / 2;
-        HitResult hit = new HitResult();
-        hit.time = 1f;
-        Quaternion pawnRotation = transform.rotation;
-        Vector3 moveForward = (target.position - transform.position).normalized;
-        MoveUpdateImpl(moveForward * velocity, pawnRotation, true, out hit);
-        if (hit.bBlockingHit)
-        {
-            Vector3 gravDir = Vector3.down;
-            StepDownResult stepDownResult;
-            StepUp(gravDir, moveForward * velocity, hit, out stepDownResult);
-        }
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            HitResult hit = new HitResult();
+            hit.time = 1f;
+            Quaternion pawnRotation = transform.rotation;
+
+            Vector3 moveForward = (target.position - transform.position).normalized;
+            MoveUpdateImpl(moveForward * velocity * Time.deltaTime, pawnRotation, true, out hit);
+            if (hit.bBlockingHit)
+            {
+                Debug.Log("BlockingHit...");
+                Vector3 gravDir = Vector3.down;
+                StepDownResult stepDownResult;
+                StepUp(gravDir, moveForward * velocity * Time.deltaTime, hit, out stepDownResult);
+            }
+        }
     }
 
     bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, out StepDownResult stepDownResult)
@@ -72,11 +78,11 @@ public class CharacterStepUpComponent : MonoBehaviour
         pawnRadius = capsuleCollider.radius;
         pawnHalfHeight = capsuleCollider.height / 2;
 
-        float initialImpactY = inHitResult.ImpactPoint.y;
-        if (initialImpactY > oldLocation.y + (pawnHalfHeight - pawnRadius))
-        {
-            return false;
-        }
+        //float initialImpactY = inHitResult.ImpactPoint.y;
+        //if (initialImpactY > oldLocation.y + (pawnHalfHeight - pawnRadius))
+        //{
+        //    return false;
+        //}
         //TODO check gravDir normalized
         if (gravDir.Equals(Vector3.zero))
         {
@@ -106,10 +112,10 @@ public class CharacterStepUpComponent : MonoBehaviour
             }
         }
 
-        if (initialImpactY <= pawnInitialFloorBaseY)
-        {
-            return false;
-        }
+        //if (initialImpactY <= pawnInitialFloorBaseY)
+        //{
+        //    return false;
+        //}
 
         //step up
         HitResult sweepUpHit = new HitResult();
@@ -500,9 +506,10 @@ public class CharacterStepUpComponent : MonoBehaviour
         if (deltaSizeSq > 0f)
         {
             float delataSize = Mathf.Sqrt(deltaSizeSq);
-            Vector3 point1 = transform.position - Vector3.up * pawnHalfHeight;
-            Vector3 point2 = transform.position + Vector3.up * pawnHalfHeight;
-            RaycastHit[] raycastHits = Physics.CapsuleCastAll(point1, point2, pawnRadius, delta.normalized, delataSize);
+
+            Vector3 p1 = transform.position + capsuleCollider.center - Vector3.up * pawnHalfHeight;
+            Vector3 p2 = transform.position + capsuleCollider.center + Vector3.up * pawnHalfHeight;
+            RaycastHit[] raycastHits = Physics.CapsuleCastAll(p1, p2, pawnRadius, delta.normalized, delataSize);
             foreach (RaycastHit raycastHit in raycastHits)
             {
                 HitResult hitResult = new HitResult();
@@ -512,7 +519,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                 hitResult.ImpactPoint = raycastHit.point;
                 hitResult.ImpactNormal = raycastHit.normal;
                 hitResult.bStartPenetrating = false;
-                hitResult.bBlockingHit = true;
+                hitResult.bBlockingHit = raycastHit.distance > 0;
                 hits.Add(hitResult);
             }
             bool bHadBlockingHit = hits.Count > 0;
@@ -583,7 +590,8 @@ public class CharacterStepUpComponent : MonoBehaviour
             outHit.TraceStart = traceStart;
             outHit.TraceEnd = traceEnd;
         }
-
+        transform.position = newLocation;
+        debugMovePaths.Add(newLocation);
         return false;
     }
 
@@ -812,6 +820,16 @@ public class CharacterStepUpComponent : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void OnDrawGizmos()
+    {
+        for (int i = 0; i < debugMovePaths.Count; i++)
+        {
+            Vector3 debugMovePt = debugMovePaths[i];
+            Gizmos.color = Color.green;
+            Gizmos.DrawSphere(debugMovePt, 0.3f);
+        }
     }
 }
 
