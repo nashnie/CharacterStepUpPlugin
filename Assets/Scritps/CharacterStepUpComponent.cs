@@ -186,7 +186,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                 }
             }
 
-            if (IsWithinEdgeTolerance(hit.Location, hit.ImpactNormal, pawnRadius) == false)
+            if (IsWithinEdgeTolerance(transform.position, hit.Location, pawnRadius) == false)
             {
                 return false;
             }
@@ -874,13 +874,13 @@ public class CharacterStepUpComponent : MonoBehaviour
 
     bool IsWalkable(HitResult hit)
     {
-        if (hit.ImpactNormal.z < KINDA_SMALL_NUMBER)
+        if (hit.ImpactNormal.y < KINDA_SMALL_NUMBER)
         {
             return false;
         }
 
-        float testWalkableZ = WalkableFloorY;
-        if (hit.ImpactNormal.z < testWalkableZ)
+        float testWalkableY = WalkableFloorY;
+        if (hit.ImpactNormal.y < testWalkableY)
         {
             return false;//too steep
         }
