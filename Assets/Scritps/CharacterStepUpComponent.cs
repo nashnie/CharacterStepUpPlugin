@@ -507,8 +507,8 @@ public class CharacterStepUpComponent : MonoBehaviour
         {
             float delataSize = Mathf.Sqrt(deltaSizeSq);
 
-            Vector3 p1 = transform.position + capsuleCollider.center - Vector3.up * pawnHalfHeight;
-            Vector3 p2 = transform.position + capsuleCollider.center + Vector3.up * pawnHalfHeight;
+            Vector3 p1 = transform.position + capsuleCollider.center - Vector3.up * pawnHalfHeight + Vector3.up * pawnRadius;
+            Vector3 p2 = transform.position + capsuleCollider.center + Vector3.up * pawnHalfHeight - Vector3.up * pawnRadius;
             RaycastHit[] raycastHits = Physics.CapsuleCastAll(p1, p2, pawnRadius, delta.normalized, delataSize);
             foreach (RaycastHit raycastHit in raycastHits)
             {
@@ -520,11 +520,12 @@ public class CharacterStepUpComponent : MonoBehaviour
                 hitResult.ImpactNormal = raycastHit.normal;
                 hitResult.bStartPenetrating = false;
                 hitResult.bBlockingHit = raycastHit.distance > 0;
+                hitResult.Location = raycastHit.point;
                 hits.Add(hitResult);
             }
             bool bHadBlockingHit = hits.Count > 0;
             if (bHadBlockingHit)
-            {    
+            {
                 for (int i = 0; i < hits.Count; i++)
                 {
                     HitResult hit = hits[i];
