@@ -11,6 +11,7 @@ public class CharacterStepUpComponent : MonoBehaviour
 
     public Transform target;
     public float velocity;
+    public float PerchAdditionalHeight;
 
     private CapsuleCollider capsuleCollider;
     private FindFloorResult currentFloor;
@@ -262,8 +263,72 @@ public class CharacterStepUpComponent : MonoBehaviour
         if (bNeedToValidateFloor && outFindFloorResult.bBlockingHit && outFindFloorResult.bLineTrace == false)
         {
             bool bCheckRadius = true;
+            if (ShouldComputePerchResult(outFindFloorResult.hitResult, bCheckRadius))
+            {
+                float MaxPerchFloorDist = Mathf.Max(MAX_FLOOR_DIST, maxStepHeight + heightCheckAdjust);
+                MaxPerchFloorDist += Mathf.Max(0f, PerchAdditionalHeight);
 
+                FindFloorResult perchFloorResult = new FindFloorResult();
+                float PerchRadius = GetValidPerchRadius();
+                if (ComputePerchResult(PerchRadius, outFindFloorResult.hitResult, MaxPerchFloorDist, perchFloorResult))
+                {
+                    float avgFloorDist = (MIN_FLOOR_DIST + MAX_FLOOR_DIST) / 2f;
+                    float moveUpDist = (avgFloorDist - outFindFloorResult.floorDist);
+                    if (moveUpDist + perchFloorResult.floorDist >= MaxPerchFloorDist)
+                    {
+                        outFindFloorResult.floorDist = avgFloorDist;
+                    }
+
+                    if (outFindFloorResult.bWalkableFloor == false)
+                    {
+                        if (outFindFloorResult.bBlockingHit && perchFloorResult.hitResult.bBlockingHit)
+                        {
+                            perchFloorResult.hitResult.time = outFindFloorResult.hitResult.time;
+                            perchFloorResult.hitResult.ImpactPoint = outFindFloorResult.hitResult.ImpactPoint;
+                            perchFloorResult.hitResult.Location = outFindFloorResult.hitResult.Location;
+                            perchFloorResult.hitResult.TraceStart = outFindFloorResult.hitResult.TraceStart;
+                            perchFloorResult.hitResult.TraceEnd = outFindFloorResult.hitResult.TraceEnd;
+
+                            outFindFloorResult.hitResult = perchFloorResult.hitResult;
+                            outFindFloorResult.bLineTrace = true;
+                            outFindFloorResult.floorDist = perchFloorResult.floorDist;
+                            outFindFloorResult.lineDist = perchFloorResult.lineDist;
+                            outFindFloorResult.bWalkableFloor = perchFloorResult.bWalkableFloor;
+                        }
+                    }
+                }
+                else
+                {
+                    outFindFloorResult.bWalkableFloor = false;
+                }
+            }
         }
+    }
+
+    bool ComputePerchResult(float testRadius, HitResult inHit, float inMaxFloorDist, FindFloorResult outPerchFloorResult)
+    {
+        if (inMaxFloorDist <= 0f)
+        {
+            return false;
+        }
+        float inHitAboveBase = Mathf.Max(0f, inHit.ImpactPoint.z - (inHit.Location.z - pawnHalfHeight));
+        float perchLineDist = Mathf.Max(0f, inMaxFloorDist - inHitAboveBase);
+        float perchSweepDist = Mathf.Max(0f, inMaxFloorDist);
+
+        float actualSweepDist = perchSweepDist + pawnRadius;
+        HitResult downwardSweepResult = new HitResult();
+        ComputerFloorDist(inHit.Location, perchSweepDist, actualSweepDist, outPerchFloorResult, testRadius, downwardSweepResult);
+        if ((outPerchFloorResult.bWalkableFloor && outPerchFloorResult.bBlockingHit) == false)
+        {
+            return false;
+        }
+        else if (inHitAboveBase + outPerchFloorResult.floorDist > inMaxFloorDist)
+        {
+            outPerchFloorResult.bWalkableFloor = false;
+            return false;
+        }
+
+        return true;
     }
 
     void ComputerFloorDist(Vector3 capsuleLocation, float lineDistance, float sweepDistance, FindFloorResult outFloorResult, float sweepRadius, HitResult downwardSweepResult)
