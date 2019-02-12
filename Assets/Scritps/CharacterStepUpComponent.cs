@@ -13,6 +13,8 @@ public class CharacterStepUpComponent : MonoBehaviour
     public float velocity;
     public float PerchAdditionalHeight;
 
+    private Vector3 oldLocation;
+
     private CapsuleCollider capsuleCollider;
     private FindFloorResult currentFloor;
     private bool bConstrainToPlane;
@@ -186,7 +188,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                 }
             }
 
-            if (IsWithinEdgeTolerance(transform.position, hit.Location, pawnRadius) == false)
+            if (IsWithinEdgeTolerance(oldLocation, transform.position, pawnRadius) == false)
             {
                 return false;
             }
@@ -656,6 +658,7 @@ public class CharacterStepUpComponent : MonoBehaviour
             outHit.TraceStart = traceStart;
             outHit.TraceEnd = traceEnd;
         }
+        oldLocation = transform.position;
         transform.position = newLocation;
         debugMovePaths.Add(newLocation);
         return false;
