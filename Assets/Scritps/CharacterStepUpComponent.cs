@@ -51,7 +51,7 @@ public class CharacterStepUpComponent : MonoBehaviour
             HitResult hit = new HitResult();
             hit.time = 1f;
             Quaternion pawnRotation = transform.rotation;
-
+            oldLocation = transform.position;
             Vector3 moveForward = (target.position - transform.position).normalized;
             MoveUpdateImpl(moveForward * velocity * Time.deltaTime, pawnRotation, true, out hit);
             if (hit.bBlockingHit)
@@ -62,6 +62,11 @@ public class CharacterStepUpComponent : MonoBehaviour
                 StepUp(gravDir, moveForward * velocity * Time.deltaTime, hit, out stepDownResult);
             }
         }
+    }
+
+    private void RevertMove()
+    {
+        transform.position = oldLocation;
     }
 
     bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, out StepDownResult stepDownResult)
@@ -586,7 +591,14 @@ public class CharacterStepUpComponent : MonoBehaviour
                 hitResult.distance = hitDistance;
                 hitResult.ImpactPoint = raycastHit.point;
                 hitResult.ImpactNormal = raycastHit.normal;
-                hitResult.bStartPenetrating = false;
+                if (raycastHit.transform != transform && hitDistance <= 0)
+                {
+                    hitResult.bStartPenetrating = true;
+                }
+                else
+                {
+                    hitResult.bStartPenetrating = false;
+                }
                 hitResult.bBlockingHit = hitDistance > 0;
                 hitResult.Location = raycastHit.point;
                 hits.Add(hitResult);
@@ -597,7 +609,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                 for (int i = 0; i < hits.Count; i++)
                 {
                     HitResult hit = hits[i];
-                    PullBackHit(hit, traceStart, traceEnd, delataSize);
+                    PullBackHit(ref hit, traceStart, traceEnd, delataSize);
                 }
             }
 
@@ -636,8 +648,16 @@ public class CharacterStepUpComponent : MonoBehaviour
             }
             if (blockingHit.bBlockingHit == false)
             {
-                newLocation = traceEnd;
-                impactLocation = traceEnd;
+                if (blockingHit.bStartPenetrating)
+                {
+                    newLocation = traceStart;
+                    impactLocation = traceStart;
+                }
+                else
+                {
+                    newLocation = traceEnd;
+                    impactLocation = traceEnd;
+                }
             }
             else
             {
@@ -687,9 +707,11 @@ public class CharacterStepUpComponent : MonoBehaviour
                Mathf.Abs(value.z) <= tolerance;
     }
 
-    void PullBackHit(HitResult hit, Vector3 start, Vector3 end, float dist)
+    void PullBackHit(ref HitResult hit, Vector3 start, Vector3 end, float dist)
     {
-        float desiredTimeBack = Mathf.Clamp(0.1f, 0.1f / dist, 1.0f / dist) + 0.001f;
+        //float desiredPawnRadiusTimeBack = pawnRadius / dist;
+        float desiredPawnRadiusTimeBack = 0f;
+        float desiredTimeBack = Mathf.Clamp(0.1f, 0.1f / dist, 1.0f / dist) + 0.001f + desiredPawnRadiusTimeBack;
         hit.time = Mathf.Clamp(hit.time - desiredTimeBack, 0f, 1f);
     }
 
