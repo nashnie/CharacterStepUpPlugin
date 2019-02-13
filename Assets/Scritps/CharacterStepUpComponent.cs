@@ -14,6 +14,8 @@ public class CharacterStepUpComponent : MonoBehaviour
     public float PerchAdditionalHeight;
 
     private Vector3 oldLocation;
+    private Vector3 stepupOldLocation;
+
     private Vector3 impactLocation;
 
     private CapsuleCollider capsuleCollider;
@@ -66,11 +68,13 @@ public class CharacterStepUpComponent : MonoBehaviour
 
     private void RevertMove()
     {
-        transform.position = oldLocation;
+        transform.position = stepupOldLocation;
     }
 
     bool StepUp(Vector3 gravDir, Vector3 delta, HitResult inHitResult, out StepDownResult stepDownResult)
     {
+        stepupOldLocation = transform.position;
+
         stepDownResult = new StepDownResult();
 
         if (CanStepUp(inHitResult) == false)
@@ -94,6 +98,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         //TODO check gravDir normalized
         if (gravDir.Equals(Vector3.zero))
         {
+            RevertMove();
             return false;
         }
 
@@ -132,6 +137,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         MoveUpdateImpl(-gravDir * stepTravelUpHeight, pawnRotation, true, out sweepUpHit);
         if (sweepUpHit.bStartPenetrating)
         {
+            RevertMove();
             return false;
         }
 
@@ -144,6 +150,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         {
             if (hit.bStartPenetrating)
             {
+                RevertMove();
                 return false;
             }
 
@@ -159,6 +166,7 @@ public class CharacterStepUpComponent : MonoBehaviour
 
             if (forwardHitTime == 0f && forwardSlideAmount == 0f)
             {
+                RevertMove();
                 return false;
             }
             //slideAlongSurface
@@ -168,6 +176,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         MoveUpdate(gravDir * stepTraveDownHeight, transform.rotation, true, out hit);
         if (hit.bStartPenetrating)
         {
+            RevertMove();
             return false;
         }
 
@@ -176,6 +185,7 @@ public class CharacterStepUpComponent : MonoBehaviour
             float deltaY = hit.ImpactPoint.y - pawnFloorPointY;
             if (deltaY > maxStepHeight)
             {
+                RevertMove();
                 return false;
             }
 
@@ -184,36 +194,41 @@ public class CharacterStepUpComponent : MonoBehaviour
                 bool bNormalTowards = Vector3.Dot(delta, hit.ImpactNormal) < 0f;
                 if (bNormalTowards)
                 {
+                    RevertMove();
                     return false;
                 }
 
                 if (hit.Location.y > oldLocation.y)
                 {
+                    RevertMove();
                     return false;
                 }
             }
 
             if (IsWithinEdgeTolerance(oldLocation, impactLocation, pawnRadius) == false)
             {
+                RevertMove();
                 return false;
             }
 
             //todo can step up check
-            if (deltaY > 0f)
-            {
-                return false;
-            }
+            //if (deltaY > 0f)
+            //{
+            //    RevertMove();
+            //    return false;
+            //}
 
-            FindFloor(transform.position, stepDownResult.FloorResult, false, hit);
-            if (hit.Location.z > oldLocation.z)
-            {
-                if (stepDownResult.FloorResult.bBlockingHit && stepSideY < MAX_STEP_SIDE_Y)
-                {
-                    return false;
-                }
-            }
+            //FindFloor(transform.position, stepDownResult.FloorResult, false, hit);
+            //if (hit.Location.z > oldLocation.z)
+            //{
+            //    if (stepDownResult.FloorResult.bBlockingHit && stepSideY < MAX_STEP_SIDE_Y)
+            //    {
+            //        RevertMove();
+            //        return false;
+            //    }
+            //}
 
-            stepDownResult.bComputedFloor = true;
+            //stepDownResult.bComputedFloor = true;
         }
 
         return true;
