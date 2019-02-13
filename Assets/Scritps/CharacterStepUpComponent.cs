@@ -14,6 +14,7 @@ public class CharacterStepUpComponent : MonoBehaviour
     public float PerchAdditionalHeight;
 
     private Vector3 oldLocation;
+    private Vector3 impactLocation;
 
     private CapsuleCollider capsuleCollider;
     private FindFloorResult currentFloor;
@@ -75,8 +76,7 @@ public class CharacterStepUpComponent : MonoBehaviour
         {
             return false;
         }
-        Vector3 oldLocation = transform.position;
-       
+
         //TODO scale
         pawnRadius = capsuleCollider.radius;
         pawnHalfHeight = capsuleCollider.height / 2;
@@ -188,7 +188,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                 }
             }
 
-            if (IsWithinEdgeTolerance(oldLocation, transform.position, pawnRadius) == false)
+            if (IsWithinEdgeTolerance(oldLocation, impactLocation, pawnRadius) == false)
             {
                 return false;
             }
@@ -579,14 +579,15 @@ public class CharacterStepUpComponent : MonoBehaviour
             RaycastHit[] raycastHits = Physics.CapsuleCastAll(p1, p2, pawnRadius, delta.normalized, delataSize);
             foreach (RaycastHit raycastHit in raycastHits)
             {
+                float hitDistance = raycastHit.distance;
                 HitResult hitResult = new HitResult();
                 hitResult.raycastHit = raycastHit;
-                hitResult.time = raycastHit.distance / delataSize;
-                hitResult.distance = raycastHit.distance;
+                hitResult.time = hitDistance / delataSize;
+                hitResult.distance = hitDistance;
                 hitResult.ImpactPoint = raycastHit.point;
                 hitResult.ImpactNormal = raycastHit.normal;
                 hitResult.bStartPenetrating = false;
-                hitResult.bBlockingHit = raycastHit.distance > 0;
+                hitResult.bBlockingHit = hitDistance > 0;
                 hitResult.Location = raycastHit.point;
                 hits.Add(hitResult);
             }
@@ -636,6 +637,7 @@ public class CharacterStepUpComponent : MonoBehaviour
             if (blockingHit.bBlockingHit == false)
             {
                 newLocation = traceEnd;
+                impactLocation = traceEnd;
             }
             else
             {
@@ -646,6 +648,7 @@ public class CharacterStepUpComponent : MonoBehaviour
                     newLocation = traceStart;
                     blockingHit.time = 0f;
                 }
+                impactLocation = blockingHit.ImpactPoint;
             }
         }
 
