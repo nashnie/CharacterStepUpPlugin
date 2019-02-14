@@ -8,6 +8,7 @@ public class CharacterStepUpComponent : MonoBehaviour
     public float WalkableFloorY;
     public float maxStepHeight;
     public float perchRadiusThreshold;
+    public float offset = 0.3f;
 
     public Transform target;
     public float velocity;
@@ -697,7 +698,7 @@ public class CharacterStepUpComponent : MonoBehaviour
             outHit.TraceEnd = traceEnd;
         }
         oldLocation = transform.position;
-        transform.position = newLocation;
+        transform.position = newLocation - delta * offset;
         debugMovePaths.Add(newLocation);
         return false;
     }
@@ -725,7 +726,7 @@ public class CharacterStepUpComponent : MonoBehaviour
     void PullBackHit(ref HitResult hit, Vector3 start, Vector3 end, float dist)
     {
         //float desiredPawnRadiusTimeBack = pawnRadius / dist;
-        float desiredPawnRadiusTimeBack = 0f;
+        float desiredPawnRadiusTimeBack = 0.1f;
         float desiredTimeBack = Mathf.Clamp(0.1f, 0.1f / dist, 1.0f / dist) + 0.001f + desiredPawnRadiusTimeBack;
         hit.time = Mathf.Clamp(hit.time - desiredTimeBack, 0f, 1f);
     }
